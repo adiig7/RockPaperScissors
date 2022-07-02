@@ -2,8 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract RockPaperScissors is VRFConsumerBase{
+contract RockPaperScissors is VRFConsumerBase, Ownable{
     
     // amount of LINK tokens to send with the request
     uint256 public fee;
@@ -28,4 +29,13 @@ constructor(address vrfCoordinator, address linkToken,
         gameStarted = false;
     }
 
+// startGame initiates the match
+function startGame(uint256 _entryFee) public onlyOwner{
+    require(!gameStarted, "Oh hey! Game is already running lol");
+    delete players; // clear out the array of players
+    gameStarted = true; // ding dong! start the game fellas
+    entryFee = _entryFee;
+    gameId += 1;
+    emit GameStarted(gameId, _entryFee);
+}
 }
