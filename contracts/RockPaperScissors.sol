@@ -1,41 +1,41 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.4;
 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract RockPaperScissors is VRFConsumerBase, Ownable{
+contract RockPaperScissors is VRFConsumerBase{
     
-    // amount of LINK tokens to send with the request
     uint256 public fee;
-
     bytes32 public keyHash;
-
-    address[2] public players;
-
-    bool public gameStarted;
-    uint256 entryFee;
     uint256 public gameId;
+    uint256 public randomChoiceGenerated;
 
-    event GameStarted(uint256 gameId, uint256 entryFee);
     event PlayerJoined(uint256 gameId, address player);
-    event GameEnded(uint256 gameId, address winner, bytes32 requestId);
+    event GameEnded(uint256 gameId, bytes32 requestId, uint256 randomChoice);
 
 constructor(address vrfCoordinator, address linkToken,
     bytes32 vrfKeyHash, uint256 vrfFee)
     VRFConsumerBase(vrfCoordinator, linkToken) {
         keyHash = vrfKeyHash;
         fee = vrfFee;
-        gameStarted = false;
     }
 
-// startGame initiates the match
-function startGame(uint256 _entryFee) public onlyOwner{
-    require(!gameStarted, "Oh hey! Game is already running lol");
-    delete players; // clear out the array of players
-    gameStarted = true; // ding dong! start the game fellas
-    entryFee = _entryFee;
-    gameId += 1;
-    emit GameStarted(gameId, _entryFee);
-}
+    function playGame() public payable{
+        emit PlayerJoined(gameId, msg.sender);
+        getRandomWinner();
+    }
+     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal virtual override  {
+        randomChoiceGenerated = randomness % 3;
+        emit GameEnded(gameId,requestId, randomChoiceGenerated);
+    }
+
+     function getRandomWinner() private returns (bytes32 requestId) {
+        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK");
+        return requestRandomness(keyHash, fee);
+    }
+    receive() external payable {}
+
+    fallback() external payable {}
 }
